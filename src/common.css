@@ -167,13 +167,11 @@ input, select {
   grid-area: vehicle-vitals;
   overflow: hidden;
 }
-.rating:after {
-  content: "\2605";
-  color: #2BCA81;
-  margin-left: 2px;
+.vehicle-vitals .dav-uid {
+  font-size: 9px;
 }
-.rating strong {
-  font-weight: 700;
+.vehicle-bid-card--small .vehicle-vitals .dav-uid {
+  font-size: 12px;
 }
 .vehicle-card img {
   grid-area: vehicle-icon;

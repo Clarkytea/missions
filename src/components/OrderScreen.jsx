@@ -1,23 +1,19 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
-import { getShortCoordsString, coordsFromString } from '../lib/utils';
+import Link from '../containers/LinkContainer.jsx';
 import './OrderScreen.css';
 import arrow from '../images/arrow-left.svg';
 import IconSelector from './IconSelector.jsx';
 import getConfig from '../config';
-
-// icons
-import sizeLetter from '../images/size_letter.svg';
-import sizeCan from '../images/size_can.svg';
-import sizePizza from '../images/size_pizza.svg';
-import sizeBox from '../images/size_box.svg';
+import { packageSizeOptions } from '../lib/utils';
+import Geosuggest from 'react-geosuggest';
 
 class OrderScreen extends Component {
   constructor(props) {
     super(props);
     this.updateStoreFromForm = this.updateStoreFromForm.bind(this);
     this.submitForm = this.submitForm.bind(this);
+    this.cancelForm = this.cancelForm.bind(this);
     this.createOrderDetailsObject = this.createOrderDetailsObject.bind(this);
 
     this.state = {
@@ -26,12 +22,7 @@ class OrderScreen extends Component {
 
     // Options should be read from some kind of configuration
     // but putting it here for now
-    this.packageSizeOptions = [
-      { id: 'letter', icon: sizeLetter },
-      { id: 'can', icon: sizeCan },
-      { id: 'pizza', icon: sizePizza },
-      { id: 'box', icon: sizeBox }
-    ];
+    this.packageSizeOptions = packageSizeOptions;
 
     // Reference to a method that toggles the currently selected
     // package size option on / off.
@@ -43,17 +34,17 @@ class OrderScreen extends Component {
   }
 
   createOrderDetailsObject() {
-    const { userCoords } = this.props;
-
+    const { userCoords, defaultDropoff } = this.props;
     return {
-      pickup: coordsFromString(this.pickupNode.value) || {
-        lat: userCoords.lat,
-        long: userCoords.long
-      },
-      dropoff: coordsFromString(this.dropoffNode.value),
+      pickup: this.state.pickup ?
+        { lat: this.state.pickup.lat, long: this.state.pickup.lng } :
+        { lat: userCoords.lat, long: userCoords.long },
+      dropoff: this.state.dropoff ?
+        { lat: this.state.dropoff.lat, long: this.state.dropoff.lng } :
+        defaultDropoff,
       size: this.state.packageSize || undefined,
       weight: this.weightNode.value || undefined,
-      requested_pickup_time: this.pickupTimeNode.value || undefined
+      pickup_at: this.pickupTimeNode.value || undefined
     };
   }
 
@@ -62,10 +53,14 @@ class OrderScreen extends Component {
     this.props.updateOrderDetails({ ...details, ...detailOverride });
   }
 
+  cancelForm() {
+    this.updateStoreFromForm({ stage: 'draft', pickup: null, dropoff: null });
+  }
+
   submitForm() {
     this.updateStoreFromForm({ stage: 'searching' });
-    let requestDetails = this.createOrderDetailsObject();
-    this.props.createRequest(requestDetails);
+    let needDetails = this.createOrderDetailsObject();
+    this.props.createNeed(needDetails);
   }
 
   selectPackageSize(size) {
@@ -74,45 +69,46 @@ class OrderScreen extends Component {
     });
   }
 
-  getSizeContainer() {}
+  getSizeContainer() { }
 
   render() {
-    const { userCoords, pickup, dropoff, weight } = this.props; // size
-    const requested_pickup_time =
-      this.props.requested_pickup_time || new Date().toTimeString().slice(0, 5);
-    const userCoordsString = getShortCoordsString(userCoords);
-    const pickupPlaceholder = userCoordsString
-      ? `Your current location (${userCoordsString})`
-      : '';
-    const pickupCoordsString = getShortCoordsString(pickup);
-    const dropoffCoordsString = getShortCoordsString(dropoff);
+    const { weight } = this.props; // size
+    const pickup_at =
+      this.props.pickup_at || new Date().toTimeString().slice(0, 5);
     return (
       <div id="order-screen" className="screen">
-        <Link to="/" className="back-button" onClick={this.updateStoreFromForm}>
+        <Link to="/" className="back-button" onClick={this.cancelForm}>
           <img src={arrow} alt="Back" />
         </Link>
         <h1>Order Pickup</h1>
         <div className="form-field">
           <label htmlFor="pickup-location">Set pickup location</label>
-          <input
+          <Geosuggest
             type="text"
             id="pickup-location"
-            placeholder={pickupPlaceholder}
-            defaultValue={pickupCoordsString}
-            ref={node => {
-              this.pickupNode = node;
-            }}
+            placeholder="Type the address of the pickup location"
+            onSuggestSelect={
+              geo => {
+                if (geo) {
+                  this.setState({ pickup: geo.location });
+                }
+              }
+            }
           />
         </div>
         <div className="form-field">
           <label htmlFor="dropoff-location">Set dropoff location</label>
-          <input
+          <Geosuggest
             type="text"
             id="dropoff-location"
-            defaultValue={dropoffCoordsString}
-            ref={node => {
-              this.dropoffNode = node;
-            }}
+            placeholder="Type the address of the dropoff location"
+            onSuggestSelect={
+              geo => {
+                if (geo) {
+                  this.setState({ dropoff: geo.location });
+                }
+              }
+            }
           />
         </div>
 
@@ -145,7 +141,7 @@ class OrderScreen extends Component {
           <input
             id="pickup-time"
             type="time"
-            defaultValue={requested_pickup_time}
+            defaultValue={pickup_at}
             ref={node => {
               this.pickupTimeNode = node;
             }}
@@ -165,13 +161,14 @@ class OrderScreen extends Component {
 
 OrderScreen.propTypes = {
   userCoords: PropTypes.object,
+  defaultDropoff: PropTypes.object,
   pickup: PropTypes.object,
   dropoff: PropTypes.object,
-  requested_pickup_time: PropTypes.string,
+  pickup_at: PropTypes.string,
   size: PropTypes.string,
   weight: PropTypes.string,
   updateOrderDetails: PropTypes.func.isRequired,
-  createRequest: PropTypes.func.isRequired,
+  createNeed: PropTypes.func.isRequired,
   onMount: PropTypes.func.isRequired
 };
 

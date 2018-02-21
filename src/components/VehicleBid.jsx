@@ -15,14 +15,14 @@ const VehicleBid = ({bid, vehicle, shown, chooseBid}) => {
   }
   return (
     <div className={classNames.join(' ')}>
-      <VehicleCard icon={vehicle.icon} buttonClass={'choose-bid-button'} buttonOnClick={clickChooseBid} buttonText="Order" model={vehicle.model} rating={vehicle.rating} />
+      <VehicleCard icon={vehicle.icon} buttonClass={'choose-bid-button'} buttonOnClick={clickChooseBid} buttonText="Order" model={vehicle.model} id={vehicle.id} />
       <dl className="bid-details">
         <dt>Estimated pickup time:</dt>
         <dd>in {Math.ceil(bid.time_to_pickup/60000)} minutes</dd>
         <dt>Estimated delivery time:</dt>
         <dd>{Math.ceil(bid.time_to_dropoff/60000)} minutes</dd>
         <dt>Cost for delivery:</dt>
-        <dd>{parseFloat(bid.price).toFixed(2)} <img src={currencyImage} className="currency-symbol" alt="DAV"/></dd>
+        <dd>{parseFloat(bid.price/1000000000000000000).toFixed(2)}<img src={currencyImage} className="currency-symbol" alt="DAV"/></dd>
       </dl>
     </div>
   );
